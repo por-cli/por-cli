@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+
+HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
+mkdir -p "$(dirname "$HISTFILE")"
+
+MODE=$1
+
+if [[ "$MODE" == "-h" || "$MODE" == "--help" ]]; then
+  cat <<EOF
+por-cli — quick search & watch helper
+
+Usage:
+  por-cli           # interactive search (choose provider)
+  por-cli -r        # resume from watch history
+  por-cli -h        # show help
+
+Options:
+  -r            Resume & pick from history
+  -h, --help    Show this help menu
+
+History file:
+  $HISTFILE
+
+Examples:
+  por-cli           # search normally
+  por-cli -r        # pick from past watched videos
+EOF
+  exit 0
+fi
+
+if [ "$MODE" = "-r" ]; then
+
+  if [ ! -s $HISTFILE ]; then
+    echo "watch a video first"
+    exit 0
+  fi
+  cat $HISTFILE |
+    awk '!seen[$1]++' |
+    fzf \
+    --bind 'enter:execute(
+      url={1};
+      echo "$url" >> "$HISTFILE";
+      curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" |
+        grep -oP "https://[^\\\"]+\\.m3u8" |
+        head -n1 |
+        xargs -I{} mpv --msg-level=all=no {}
+      )'
+
+    else
+      provider=`echo "xhamster spankbang" | tr ' ' '\n'`
+      selected=`printf "$provider" | fzf`
+      if [[ $selected == "xhamster" ]]; then
+
+        read -rp "Search: " SEARCH
+        ENCODED_SEARCH=${SEARCH// /+}
+
+        PAGE=$( curl -sSf --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
+          grep -B2 '<li class="next">' |
+          grep -oP 'data-page="\K\d+' |
+          tail -n 1
+        )
+
+        {
+          for ((i = 1; i <= PAGE; i++)); do
+            curl -sSf --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 https://xhamster1.desi/search/$ENCODED_SEARCH?page=$i 2>/dev/null \
+              | grep -oP '<a[^>]+href="https://[^"]+/videos/[^"]+"[^>]*>.*?</a>' \
+              | sed -nE 's/.*href="([^"]+)".*aria-label="([^"]+)".*(data-src|src)="([^"]+\.jpg)".*/\1\t\2\t\4/p' 
+            done
+            notify-send "Pages loaded" "All $PAGE pages fetched. Select a video."
+          } | 
+            awk '!seen[$1]++' |
+            fzf --delimiter=$'\t' --with-nth=2 --preview 'kitty icat --clear --transfer-mode=memory --stdin=no --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0 {3}'\
+            --bind 'enter:execute(
+              url={1};
+              echo "$url" >> "$HISTFILE";
+              curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" 2>/dev/null |
+                grep -oP "https://[^\\\"]+\\.m3u8" |
+                head -n1 |
+                xargs -I{} mpv --msg-level=all=no {}
+              )'
+      elif [[ $selected == "spankbang" ]]; then
+        read -rp "Search: " SEARCH
+        ENCODED_SEARCH=${SEARCH// /+}
+        PAGE=$(curl -L -s "https://spankbang.party/s/$ENCODED_SEARCH" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
+          grep -oP "/s/$ENCODED_SEARCH/\K\d+(?=/)" |
+          sort -n |
+          tail -n1
+        )
+        {
+          for ((i = 1; i <= PAGE; i++)); do
+            curl -L -v "https://spankbang.party/s/$ENCODED_SEARCH/$i" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
+              tr '\n' ' ' |
+              grep -oP '<div[^>]+data-testid="video-item".*?</div>\s*</div>' |
+              sed -E 's|.*<img[^>]+src="([^"]+)".*?<a[^>]+href="([^"]+/video/[^"]+)".*?title="([^"]+)".*|\2\t\3\t\1|' |
+              sed '1,8d' 
+            done
+            notify-send "Pages loaded" "All $PAGE pages fetched. Select a video."
+          } | 
+            fzf --delimiter=$'\t' --with-nth=2 \
+            --preview 'kitty icat --clear --transfer-mode=memory --stdin=no --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0 {3}' \
+            --bind "enter:execute(
+              url=https://spankbang.party{1};
+              echo \"\$url\" >> \"\$HISTFILE\";
+              curl -L -v -s \"\$url\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
+                tr '\n' ' ' |
+                grep -oP \"'m3u8'\\s*:\\s*\\[\\s*'\\K[^']+\" |
+                xargs -r mpv --msg-level=all=no {}
+              )"
+
+      else
+              echo "WORK IN PROGRESS FOR $selected"
+      fi
+fi 
