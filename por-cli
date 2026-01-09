@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-
-HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
-mkdir -p "$(dirname "$HISTFILE")"
+HIS="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
 
 MODE=$1
 
@@ -19,7 +17,7 @@ Options:
   -h, --help    Show this help menu
 
 History file:
-  $HISTFILE
+  $HIS
 
 Examples:
   por-cli           # search normally
@@ -30,16 +28,16 @@ fi
 
 if [ "$MODE" = "-r" ]; then
 
-  if [ ! -s $HISTFILE ]; then
+  if [ ! -s $HIS ]; then
     echo "watch a video first"
     exit 0
   fi
-  cat $HISTFILE |
+  cat $HIS |
     awk '!seen[$1]++' |
     fzf \
     --bind 'enter:execute(
       url={1};
-      echo "$url" >> "$HISTFILE";
+      echo "$url" >> "${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history";
       curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" |
         grep -oP "https://[^\\\"]+\\.m3u8" |
         head -n1 |
@@ -72,7 +70,7 @@ if [ "$MODE" = "-r" ]; then
             fzf --delimiter=$'\t' --with-nth=2 --preview 'kitty icat --clear --transfer-mode=memory --stdin=no --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0 {3}'\
             --bind 'enter:execute(
               url={1};
-              echo "$url" >> "$HISTFILE";
+              echo "$url" >> "${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history";
               curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" 2>/dev/null |
                 grep -oP "https://[^\\\"]+\\.m3u8" |
                 head -n1 |
@@ -100,7 +98,7 @@ if [ "$MODE" = "-r" ]; then
             --preview 'kitty icat --clear --transfer-mode=memory --stdin=no --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0 {3}' \
             --bind "enter:execute(
               url=https://spankbang.party{1};
-              echo \"\$url\" >> \"\$HISTFILE\";
+              echo \"\$url\" >> \"\${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
               curl -L -v -s \"\$url\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
                 tr '\n' ' ' |
                 grep -oP \"'m3u8'\\s*:\\s*\\[\\s*'\\K[^']+\" |
