@@ -25,3 +25,4 @@ bash <(curl -fsSL https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/m
 * mpv
 * fzf
 * kitty (icat)
+* wget
