@@ -17,7 +17,7 @@ if (( ${#MISSING[@]} > 0 )); then
 fi
 
 if [ -n "$TERMUX_VERSION" ]; then
-  wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/por-cli" -O "/usr/local/bin/por-cli" &&
+  wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/por-cli" -O "/usr/local/bin/" &&
      chmod +x "/usr/local/bin/por-cli"
 else
   sudo wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/por-cli" -O "/usr/local/bin/por-cli" &&
