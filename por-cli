@@ -3,6 +3,16 @@ HIS="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
 
 MODE=$1
 
+
+player () {
+  if [ -n "$TERMUX_VERSION" ]; then
+    am start -n is.xyz.mpv/is.xyz.mpv.MPVActivity -e filepath $1
+  else
+    mpv --msg-level=all=no $1
+  fi
+}
+export -f player
+
 if [[ "$MODE" == "-h" || "$MODE" == "--help" ]]; then
   cat <<EOF
 por-cli — quick search & watch helper
@@ -38,19 +48,27 @@ if [ "$MODE" = "-r" ]; then
     --bind 'enter:execute(
       url={1};
       echo "$url" >> "${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history";
-      curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" |
+      playlist=$(curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" |
         grep -oP "https://[^\\\"]+\\.m3u8" |
-        head -n1 |
-        xargs -I{} mpv --msg-level=all=no {}
+        head -n1 )
+        bash -c "player $playlist"
       )'
+      exit 0
 
     else
-      provider=`echo "xhamster spankbang" | tr ' ' '\n'`
-      selected=`printf "$provider" | fzf`
-      if [[ $selected == "xhamster" ]]; then
 
-        read -rp "Search: " SEARCH
-        ENCODED_SEARCH=${SEARCH// /+}
+      provider=`echo "xhamster spankbang eporner" | tr ' ' '\n'`
+      selected=`printf "$provider" | fzf`
+
+      if [[ -z $selected ]]; then
+        echo "No provider selected" >&2
+        exit 2
+      fi
+
+      read -rp "Search: " SEARCH
+      ENCODED_SEARCH=${SEARCH// /+}
+
+      if [[ $selected == "xhamster" ]]; then
 
         PAGE=$( curl -sSf --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
           grep -B2 '<li class="next">' |
@@ -71,14 +89,13 @@ if [ "$MODE" = "-r" ]; then
             --bind 'enter:execute(
               url={1};
               echo "$url" >> "${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history";
-              curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" 2>/dev/null |
+              playlist=$(curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" 2>/dev/null |
                 grep -oP "https://[^\\\"]+\\.m3u8" |
-                head -n1 |
-                xargs -I{} mpv --msg-level=all=no {}
+                head -n1 );
+                bash -c "player $playlist" 
               )'
+              exit 0
       elif [[ $selected == "spankbang" ]]; then
-        read -rp "Search: " SEARCH
-        ENCODED_SEARCH=${SEARCH// /+}
         PAGE=$(curl -L -s "https://spankbang.party/s/$ENCODED_SEARCH" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
           grep -oP "/s/$ENCODED_SEARCH/\K\d+(?=/)" |
           sort -n |
@@ -99,13 +116,14 @@ if [ "$MODE" = "-r" ]; then
             --bind "enter:execute(
               url=https://spankbang.party{1};
               echo \"\$url\" >> \"\${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
-              curl -L -v -s \"\$url\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
+              playlist=\$(curl -L -v -s \"\$url\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
                 tr '\n' ' ' |
-                grep -oP \"'m3u8'\\s*:\\s*\\[\\s*'\\K[^']+\" |
-                xargs -r mpv --msg-level=all=no {}
+                grep -oP \"'m3u8'\\s*:\\s*\\[\\s*'\\K[^']+\" );
+                bash -c \"player \$playlist\" 
               )"
-
-      else
-              echo "WORK IN PROGRESS FOR $selected"
+              exit 0
+            else
+              echo "WORK IN PROGRESS FOR $selected" >&2
+              exit 1
       fi
 fi 
