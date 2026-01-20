@@ -1,14 +1,5 @@
 #!/bin/env bash
 
-SCRIPT_SOURCE="$BASH_SOURCE"
-echo $SCRIPT_SOURCE
-
-# Extract branch name from raw.githubusercontent URL
-BRANCH=$(echo "$SCRIPT_SOURCE" | sed -E 's#.*/por-cli/por-cli/refs/heads/([^/]+)/.*#\1#')
-echo $BRANCH
-
-# Fallback if not matched (e.g. default branch)
-[ -z "$BRANCH" ] && BRANCH="main"
 DEPS=(curl sed mpv fzf kitty wget)
 MISSING=()
 
@@ -26,10 +17,10 @@ if (( ${#MISSING[@]} > 0 )); then
 fi
 
 if [ -n "$TERMUX_VERSION" ]; then
-  wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/${BRANCH}/por-cli" -O "/data/data/com.termux/files/usr/bin/por-cli" &&
+  wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/mobile-support/por-cli" -O "/data/data/com.termux/files/usr/bin/por-cli" &&
      chmod +x "/data/data/com.termux/files/usr/bin/por-cli"
 else
-  sudo wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/${BRANCH}/por-cli" -O "/usr/local/bin/por-cli" &&
+  sudo wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/mobile-support/por-cli" -O "/usr/local/bin/por-cli" &&
     sudo chmod +x "/usr/local/bin/por-cli"
 fi
 
