@@ -3,14 +3,28 @@ HIS="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
 
 MODE=$1
 
+preview(){
+  local img="$1"
+  if [ -n "$TERMUX_VERSION" ]; then
+    curl -s "$img" | chafa --size=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES} -
+    return
+  else
+    kitty icat --clear --transfer-mode=memory --stdin=no --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0 "$img" 
+    return
+  fi
+}
 
 player () {
   if [ -n "$TERMUX_VERSION" ]; then
     am start -n is.xyz.mpv/is.xyz.mpv.MPVActivity -e filepath $1
+    return
   else
     mpv --msg-level=all=no $1
+    return
   fi
 }
+
+export -f preview
 export -f player
 
 if [[ "$MODE" == "-h" || "$MODE" == "--help" ]]; then
@@ -85,7 +99,7 @@ if [ "$MODE" = "-r" ]; then
             notify-send "Pages loaded" "All $PAGE pages fetched. Select a video."
           } | 
             awk '!seen[$1]++' |
-            fzf --delimiter=$'\t' --with-nth=2 --preview 'kitty icat --clear --transfer-mode=memory --stdin=no --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0 {3}'\
+            fzf --delimiter=$'\t' --with-nth=2 --preview 'bash -c "preview {3}"'\
             --bind 'enter:execute(
               url={1};
               echo "$url" >> "${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history";
@@ -112,7 +126,7 @@ if [ "$MODE" = "-r" ]; then
             notify-send "Pages loaded" "All $PAGE pages fetched. Select a video."
           } | 
             fzf --delimiter=$'\t' --with-nth=2 \
-            --preview 'kitty icat --clear --transfer-mode=memory --stdin=no --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0 {3}' \
+            --preview 'bash -c "preview {3}"' \
             --bind "enter:execute(
               url=https://spankbang.party{1};
               echo \"\$url\" >> \"\${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
