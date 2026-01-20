@@ -3,6 +3,7 @@
 DEPS=(curl sed mpv fzf kitty wget)
 MISSING=()
 
+
 for dep in "${DEPS[@]}"; do
     if ! command -v "$dep" >/dev/null 2>&1; then
         MISSING+=("$dep")
@@ -15,8 +16,13 @@ if (( ${#MISSING[@]} > 0 )); then
     exit 2
 fi
 
-sudo wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/por-cli" -O "/usr/local/bin/por-cli" &&
-sudo chmod +x "/usr/local/bin/por-cli"
+if [ -n "$TERMUX_VERSION" ]; then
+  wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/por-cli" -O "/data/data/com.termux/files/usr/bin/por-cli" &&
+     chmod +x "/data/data/com.termux/files/usr/bin/por-cli"
+else
+  sudo wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/por-cli" -O "/usr/local/bin/por-cli" &&
+    sudo chmod +x "/usr/local/bin/por-cli"
+fi
 
 HIS="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
 mkdir -p "$(dirname "$HIS")"
