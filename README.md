@@ -8,7 +8,7 @@ This tool scrapes the site [spankbang](https://spankbang.party), [xhamster](http
 ## Installation
 run this one liner bash command
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/mobile-support/setup.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/setup.sh)
 ```
 
 ## Usage
