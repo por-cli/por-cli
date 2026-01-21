@@ -1,8 +1,16 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
-DEPS=(curl sed mpv fzf kitty wget)
+COMMON_DEPS=(curl sed mpv fzf wget)
+TERMUX_DEPS=(chafa)
+DESKTOP_DEPS=(kitty)
 MISSING=()
 
+# detect termux
+if [ -n "$TERMUX_VERSION" ]; then
+  DEPS=("${COMMON_DEPS[@]}" "${TERMUX_DEPS[@]}")
+else
+  DEPS=("${COMMON_DEPS[@]}" "${DESKTOP_DEPS[@]}")
+fi
 
 for dep in "${DEPS[@]}"; do
     if ! command -v "$dep" >/dev/null 2>&1; then
@@ -12,8 +20,8 @@ done
 
 if (( ${#MISSING[@]} > 0 )); then
   echo "Missing dependencies (please install):"
-    printf ' - %s\n' "${MISSING[@]}"
-    exit 2
+  printf ' - %s\n' "${MISSING[@]}"
+  exit 2
 fi
 
 if [ -n "$TERMUX_VERSION" ]; then
