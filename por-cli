@@ -47,7 +47,7 @@ Examples:
   por-cli           # search normally
   por-cli -r        # pick from past watched videos
 EOF
-  exit 0
+exit 0
 fi
 
 if [ "$MODE" = "-r" ]; then
@@ -65,7 +65,7 @@ if [ "$MODE" = "-r" ]; then
       playlist=$(curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" |
         grep -oP "https://[^\\\"]+\\.m3u8" |
         head -n1 )
-        bash -c "player $playlist"
+      bash -c "player $playlist"
       )'
       exit 0
 
@@ -79,10 +79,10 @@ if [ "$MODE" = "-r" ]; then
         exit 2
       fi
 
-      read -rp "Search: " SEARCH
-      ENCODED_SEARCH=${SEARCH// /+}
-
       if [[ $selected == "xhamster" ]]; then
+        read -rp "Search: " SEARCH
+        ENCODED_SEARCH=${SEARCH// /+}
+
 
         PAGE=$( curl -sSf --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
           grep -B2 '<li class="next">' |
@@ -96,7 +96,7 @@ if [ "$MODE" = "-r" ]; then
               | grep -oP '<a[^>]+href="https://[^"]+/videos/[^"]+"[^>]*>.*?</a>' \
               | sed -nE 's/.*href="([^"]+)".*aria-label="([^"]+)".*(data-src|src)="([^"]+\.jpg)".*/\1\t\2\t\4/p' 
             done
-            notify-send "Pages loaded" "All $PAGE pages fetched. Select a video."
+            notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
           } | 
             awk '!seen[$1]++' |
             fzf --delimiter=$'\t' --with-nth=2 --preview 'bash -c "preview {3}"'\
@@ -106,38 +106,76 @@ if [ "$MODE" = "-r" ]; then
               playlist=$(curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" 2>/dev/null |
                 grep -oP "https://[^\\\"]+\\.m3u8" |
                 head -n1 );
-                bash -c "player $playlist" 
+              bash -c "player $playlist" 
               )'
               exit 0
-      elif [[ $selected == "spankbang" ]]; then
-        PAGE=$(curl -L -s "https://spankbang.party/s/$ENCODED_SEARCH" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
-          grep -oP "/s/$ENCODED_SEARCH/\K\d+(?=/)" |
-          sort -n |
-          tail -n1
-        )
-        {
-          for ((i = 1; i <= PAGE; i++)); do
-            curl -L -v "https://spankbang.party/s/$ENCODED_SEARCH/$i" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
-              tr '\n' ' ' |
-              grep -oP '<div[^>]+data-testid="video-item".*?</div>\s*</div>' |
-              sed -E 's|.*<img[^>]+src="([^"]+)".*?<a[^>]+href="([^"]+/video/[^"]+)".*?title="([^"]+)".*|\2\t\3\t\1|' |
-              sed '1,8d' 
-            done
-            notify-send "Pages loaded" "All $PAGE pages fetched. Select a video."
-          } | 
-            fzf --delimiter=$'\t' --with-nth=2 \
-            --preview 'bash -c "preview {3}"' \
-            --bind "enter:execute(
-              url=https://spankbang.party{1};
-              echo \"\$url\" >> \"\${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
-              playlist=\$(curl -L -v -s \"\$url\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
-                tr '\n' ' ' |
-                grep -oP \"'m3u8'\\s*:\\s*\\[\\s*'\\K[^']+\" );
-                bash -c \"player \$playlist\" 
-              )"
-              exit 0
-            else
-              echo "WORK IN PROGRESS FOR $selected" >&2
-              exit 1
+            elif [[ $selected == "spankbang" ]]; then
+              read -rp "Search: " SEARCH
+              ENCODED_SEARCH=${SEARCH// /+}
+
+              PAGE=$(curl -L -s "https://spankbang.party/s/$ENCODED_SEARCH" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
+                grep -oP "/s/$ENCODED_SEARCH/\K\d+(?=/)" |
+                sort -n |
+                tail -n1
+              )
+              {
+                for ((i = 1; i <= PAGE; i++)); do
+                  curl -L -v "https://spankbang.party/s/$ENCODED_SEARCH/$i" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
+                    tr '\n' ' ' |
+                    grep -oP '<div[^>]+data-testid="video-item".*?</div>\s*</div>' |
+                    sed -E 's|.*<img[^>]+src="([^"]+)".*?<a[^>]+href="([^"]+/video/[^"]+)".*?title="([^"]+)".*|\2\t\3\t\1|' |
+                    sed '1,8d' 
+                  done
+                  notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
+                } | 
+                  fzf --delimiter=$'\t' --with-nth=2 \
+                  --preview 'bash -c "preview {3}"' \
+                  --bind "enter:execute(
+                    url=https://spankbang.party{1};
+                    echo \"\$url\" >> \"\${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
+                    playlist=\$(curl -L -v -s \"\$url\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
+                      tr '\n' ' ' |
+                      grep -oP \"'m3u8'\\s*:\\s*\\[\\s*'\\K[^']+\" );
+                    bash -c \"player \$playlist\" 
+                    )"
+                    exit 0
+                  elif [[ $selected == "eporner" ]]; then
+                    read -rp "Search: " SEARCH
+                    ENCODED_SEARCH=${SEARCH// /-}
+
+                    PAGE=$(curl --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 \
+                      -Ls "https://eporner.com/tag/$ENCODED_SEARCH" \
+                      -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
+                      grep -oP "/tag/$ENCODED_SEARCH/\K\d+(?=/)" |
+                      sort -n |
+                      tail -n1
+                    )
+                    {
+                      for ((i = 1; i <= PAGE; i++)); do
+                        curl --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 \
+                          -Ls "https://eporner.com/tag/$ENCODED_SEARCH/$i"\
+                          -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
+                          grep -oP 'href="(/video-[^"]+)".+?data-src="([^"]+)".+?alt="([^"]+)"' |
+                          sed -r 's#href="([^"]+)".*data-src="([^"]+)".*alt="([^"]+)"#\1\t\3\t\2#' |
+                          awk -F'|' '!seen[$1]++'
+                        done
+                        notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
+                      } | 
+                        fzf --delimiter=$'\t' --with-nth=2 \
+                        --preview 'bash -c "preview {3}"' \
+                        --bind "enter:execute(
+                          url=https://eporner.com{1};
+                          echo \"\$url\" >> \"\${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
+                          playlist=https://eporner.com\$(curl --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 \
+                            -Ls \"\$url\" \
+                            -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
+                            grep -oE '/dload[^\"]+mp4' | sort -t/ -k3nr | head -1);  
+                          export playlist;
+                          bash -c 'player <(curl --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -Ls \"\$playlist\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" )'
+                          )" 
+                          exit 0 
+                        else
+                          echo "WORK IN PROGRESS FOR $selected" >&2
+                          exit 1
       fi
 fi 
