@@ -18,6 +18,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y parallel curl
+      - name: Create output branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan output
+          git reset --hard
 
       - name: Fetch proxy lists
         run: |
@@ -31,14 +37,10 @@ jobs:
 
       - name: Filter HTTPS alive
         run: |
-          mkdir -p dist
-          parallel -j24 --no-notice  'curl -s --fail --connect-timeout 1 --max-time 2 -x {} https://api.ipify.org >/dev/null && echo {} || true'  :::: proxies_all.txt > dist/https_alive.txt
+          parallel -j24 --no-notice  'curl -s --fail --connect-timeout 1 --max-time 2 -x {} https://api.ipify.org >/dev/null && echo {} || true'  :::: proxies_all.txt > https_alive.txt
 
       - name: Push to output branch
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B output
-          git add dist/https_alive.txt
+          git add https_alive.txt
           git commit -m "Update proxy list" || true
           git push --force origin output
