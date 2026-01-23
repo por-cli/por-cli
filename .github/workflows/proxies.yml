@@ -1,0 +1,42 @@
+name: Update Proxy List
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y parallel curl
+
+      - name: Fetch proxy lists
+        run: |
+          curl -s https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt > p1.txt
+          curl -s https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt > p2.txt
+          curl -s https://raw.githubusercontent.com/shiftytr/proxy-list/master/proxy.txt > p3.txt
+
+      - name: Deduplicate
+        run: |
+          cat p*.txt | sort -u > proxies_all.txt
+
+      - name: Filter HTTPS alive
+        run: |
+          mkdir -p dist
+          parallel -j24 --no-notice  'curl -s --fail --connect-timeout 1 --max-time 2 -x {} https://api.ipify.org >/dev/null && echo {} || true'  :::: proxies_all.txt > dist/https_alive.txt
+
+      - name: Push to output branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B output
+          git add dist/https_alive.txt
+          git commit -m "Update proxy list" || true
+          git push --force origin output
