@@ -169,7 +169,7 @@ if [ "$MODE" = "-r" ]; then
                           playlist=https://eporner.com\$(curl --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 \
                             -Ls \"\$url\" \
                             -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
-                            grep -oE '/dload[^\"]+mp4' | sort -t/ -k3nr | head -1);  
+                            grep -oE '/dload[^\"]+mp4' | sort -t/ -k3nr | tail -1);  
                           export playlist;
                           bash -c 'player <(curl --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -Ls \"\$playlist\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" )'
                           )" 

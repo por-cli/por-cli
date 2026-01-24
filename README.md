@@ -14,11 +14,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/m
 ## Usage
 
 ```bash
-	por-cli [OPTIONS]
+por-cli [OPTIONS]
 
-        Options:
-            -r            Resume & pick from history
-            -h, --help    Show this help menu
+    Options:
+        -r            Resume & pick from history
+        -h, --help    Show this help menu
 ```
 
 ## Dependencies
