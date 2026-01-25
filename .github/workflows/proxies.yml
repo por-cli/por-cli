@@ -5,10 +5,10 @@ on:
     - cron: '*/5 * * * *'
   workflow_dispatch:
 
-permissions:
-  contents: write
 jobs:
-  update:
+  generate:
+    permissions: 
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
