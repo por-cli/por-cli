@@ -2,11 +2,11 @@ name: Update Proxy List
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "36 * * * *"
   workflow_dispatch:
 
 jobs:
-  generate:
+  proxy:
     permissions: 
       contents: write
     runs-on: ubuntu-latest
