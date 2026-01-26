@@ -105,20 +105,21 @@ if [ "$MODE" = "-r" ]; then
 
       if [[ $selected == "xhamster" ]]; then
 
+        tmp=$(mktemp);
         {
           PAGE=$( curl -sSf --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
             grep -B2 '<li class="next">' |
             grep -oP 'data-page="\K\d+' |
             tail -n 1
           )
-          echo "$PAGE" > /tmp/page.tmp
+          echo "$PAGE" > $tmp
         }&
       pid=$!
 
       spinner "$pid"
       wait "$pid"
-      PAGE=$(cat /tmp/page.tmp)
-      rm /tmp/page.tmp
+      PAGE=$(cat $tmp)
+      rm -f "$tmp";
       {
         for ((i = 1; i <= PAGE; i++)); do
           curl -sSf --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 https://xhamster1.desi/search/$ENCODED_SEARCH?page=$i 2>/dev/null \
@@ -152,20 +153,21 @@ if [ "$MODE" = "-r" ]; then
           )"
           exit 0
         elif [[ $selected == "spankbang" ]]; then
+        tmp=$(mktemp);
           { 
             PAGE=$(curl -L -s "https://spankbang.party/s/$ENCODED_SEARCH" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
               grep -oP "/s/$ENCODED_SEARCH/\K\d+(?=/)" |
               sort -n |
               tail -n1
             )
-            echo "$PAGE" > /tmp/page.tmp
+          echo "$PAGE" > $tmp
           }&
         pid=$!
 
         spinner "$pid"
         wait "$pid"
-        PAGE=$(cat /tmp/page.tmp)
-        rm /tmp/page.tmp
+        PAGE=$(cat $tmp)
+        rm -f "$tmp";
         {
           for ((i = 1; i <= PAGE; i++)); do
             curl -L -v "https://spankbang.party/s/$ENCODED_SEARCH/$i" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
