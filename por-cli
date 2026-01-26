@@ -3,6 +3,20 @@ HIS="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
 
 MODE=$1
 
+spinner() {
+  local pid=$1
+  local delay=0.1
+  local spin='|/-\'
+  while kill -0 $pid 2>/dev/null; do
+    for i in $(seq 0 3); do
+      printf "\r[%c] Loading..." "${spin:$i:1}"
+      sleep $delay
+    done
+  done
+  printf "\r                "
+  printf "\r"
+}
+
 preview(){
   local img="$1"
   if [ -n "$TERMUX_VERSION" ]; then
@@ -15,15 +29,22 @@ preview(){
 }
 
 player () {
+  vid="$1"
   if [ -n "$TERMUX_VERSION" ]; then
-    am start -n is.xyz.mpv/is.xyz.mpv.MPVActivity -e filepath $1
+    am start -n is.xyz.mpv/is.xyz.mpv.MPVActivity -e filepath $vid
     return
   else
-    mpv --msg-level=all=no $1
-    return
+    {
+      mpv --msg-level=all=no $vid
+    }&
+  pid=$!;
+  spinner "$pid";
+  wait "$pid";
+  return
   fi
 }
 
+export -f spinner
 export -f preview
 export -f player
 
@@ -47,7 +68,7 @@ Examples:
   por-cli           # search normally
   por-cli -r        # pick from past watched videos
 EOF
-  exit 0
+exit 0
 fi
 
 if [ "$MODE" = "-r" ]; then
@@ -65,7 +86,7 @@ if [ "$MODE" = "-r" ]; then
       playlist=$(curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" |
         grep -oP "https://[^\\\"]+\\.m3u8" |
         head -n1 )
-        bash -c "player $playlist"
+      bash -c "player $playlist"
       )'
       exit 0
 
@@ -84,37 +105,67 @@ if [ "$MODE" = "-r" ]; then
 
       if [[ $selected == "xhamster" ]]; then
 
-        PAGE=$( curl -sSf --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
-          grep -B2 '<li class="next">' |
-          grep -oP 'data-page="\K\d+' |
-          tail -n 1
-        )
-
         {
-          for ((i = 1; i <= PAGE; i++)); do
-            curl -sSf --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 https://xhamster1.desi/search/$ENCODED_SEARCH?page=$i 2>/dev/null \
-              | grep -oP '<a[^>]+href="https://[^"]+/videos/[^"]+"[^>]*>.*?</a>' \
-              | sed -nE 's/.*href="([^"]+)".*aria-label="([^"]+)".*(data-src|src)="([^"]+\.jpg)".*/\1\t\2\t\4/p' 
-            done
-            notify-send "Pages loaded" "All $PAGE pages fetched. Select a video."
-          } | 
-            awk '!seen[$1]++' |
-            fzf --delimiter=$'\t' --with-nth=2 --preview 'bash -c "preview {3}"'\
-            --bind 'enter:execute(
-              url={1};
-              echo "$url" >> "${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history";
-              playlist=$(curl -sSf --retry 20 --retry-delay 2 --retry-all-errors "$url" 2>/dev/null |
-                grep -oP "https://[^\\\"]+\\.m3u8" |
-                head -n1 );
-                bash -c "player $playlist" 
-              )'
-              exit 0
-      elif [[ $selected == "spankbang" ]]; then
-        PAGE=$(curl -L -s "https://spankbang.party/s/$ENCODED_SEARCH" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
-          grep -oP "/s/$ENCODED_SEARCH/\K\d+(?=/)" |
-          sort -n |
-          tail -n1
-        )
+          PAGE=$( curl -sSf --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
+            grep -B2 '<li class="next">' |
+            grep -oP 'data-page="\K\d+' |
+            tail -n 1
+          )
+          echo "$PAGE" > /tmp/page.tmp
+        }&
+      pid=$!
+
+      spinner "$pid"
+      wait "$pid"
+      PAGE=$(cat /tmp/page.tmp)
+      rm /tmp/page.tmp
+      {
+        for ((i = 1; i <= PAGE; i++)); do
+          curl -sSf --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 https://xhamster1.desi/search/$ENCODED_SEARCH?page=$i 2>/dev/null \
+            | grep -oP '<a[^>]+href="https://[^"]+/videos/[^"]+"[^>]*>.*?</a>' \
+            | sed -nE 's/.*href="([^"]+)".*aria-label="([^"]+)".*(data-src|src)="([^"]+\.jpg)".*/\1\t\2\t\4/p' 
+          done
+          notify-send "Pages loaded" "All $PAGE pages fetched. Select a video."
+        } | 
+          awk '!seen[$1]++' |
+          fzf --delimiter=$'\t' --with-nth=2 \
+          --preview 'bash -c "preview {3}"' \
+          --bind "enter:execute(
+            $(typeset -f spinner)
+            $(typeset -f player)
+            url='{1}';
+            tmp=\$(mktemp);
+            {
+              echo \"\$url\" >> \"${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
+              playlist=\$(curl -sSf --retry 20 --retry-delay 2 --retry-all-errors \
+                --connect-timeout 10 --max-time 30 \"\$url\" 2>/dev/null \
+                | grep -oP 'https://[^\" ]+\\.m3u8' \
+                | head -n1);
+              echo \"\$playlist\" > \"\$tmp\";
+            } &
+          pid=\$!;
+          spinner \"\$pid\";
+          wait \"\$pid\";
+          playlist=\$(cat \"\$tmp\");
+          rm -f \"\$tmp\";
+          [ -n \"\$playlist\" ] && player \"\$playlist\"
+          )"
+          exit 0
+        elif [[ $selected == "spankbang" ]]; then
+          { 
+            PAGE=$(curl -L -s "https://spankbang.party/s/$ENCODED_SEARCH" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
+              grep -oP "/s/$ENCODED_SEARCH/\K\d+(?=/)" |
+              sort -n |
+              tail -n1
+            )
+            echo "$PAGE" > /tmp/page.tmp
+          }&
+        pid=$!
+
+        spinner "$pid"
+        wait "$pid"
+        PAGE=$(cat /tmp/page.tmp)
+        rm /tmp/page.tmp
         {
           for ((i = 1; i <= PAGE; i++)); do
             curl -L -v "https://spankbang.party/s/$ENCODED_SEARCH/$i" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
@@ -128,12 +179,23 @@ if [ "$MODE" = "-r" ]; then
             fzf --delimiter=$'\t' --with-nth=2 \
             --preview 'bash -c "preview {3}"' \
             --bind "enter:execute(
+              $(typeset -f spinner)
+              $(typeset -f player)
               url=https://spankbang.party{1};
-              echo \"\$url\" >> \"\${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
-              playlist=\$(curl -L -v -s \"\$url\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
-                tr '\n' ' ' |
-                grep -oP \"'m3u8'\\s*:\\s*\\[\\s*'\\K[^']+\" );
-                bash -c \"player \$playlist\" 
+              tmp=\$(mktemp);
+              {
+                echo \"\$url\" >> \"\${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
+                playlist=\$(curl -L -v -s \"\$url\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
+                  tr '\n' ' ' |
+                  grep -oP \"'m3u8'\\s*:\\s*\\[\\s*'\\K[^']+\" );
+                echo \"\$playlist\" > \"\$tmp\";
+                }&
+              pid=\$!;
+              spinner \"\$pid\";
+              wait \"\$pid\";
+              playlist=\$(cat \"\$tmp\");
+              rm -f \"\$tmp\";
+              [ -n \"\$playlist\" ] && player \"\$playlist\"
               )"
               exit 0
             else
