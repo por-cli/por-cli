@@ -42,7 +42,7 @@ preview(){
     curl -s -x "$PROXY" "$img" | chafa --size=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES} -
     return
   else
-    kitty icat --clear --transfer-mode=memory --stdin=no --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0 "$img" 
+    curl -s -x "$PROXY" "$img" | kitty icat --clear --transfer-mode=memory --stdin=no --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0
     return
   fi
 }
@@ -54,7 +54,7 @@ player () {
     return
   else
     {
-      mpv --http-proxy="$PROXY" --msg-level=all=no $vid
+      mpv -fs --http-proxy="$PROXY" --msg-level=all=no $vid
     }&
   pid=$!;
   spinner "$pid";
@@ -154,7 +154,7 @@ spinner "$pid"
 wait "$pid"
 PAGE=$(cat $tmp)
 rm -f "$tmp";
-{
+{ 
   for ((i = 1; i <= PAGE; i++)); do
     curl -sSf -x "$PROXY" --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 https://xhamster1.desi/search/$ENCODED_SEARCH?page=$i 2>/dev/null \
       | grep -oP '<a[^>]+href="https://[^"]+/videos/[^"]+"[^>]*>.*?</a>' \
@@ -185,7 +185,7 @@ rm -f "$tmp";
     rm -f \"\$tmp\";
     [ -n \"\$playlist\" ] && player \"\$playlist\"
     )"
-    exit 0
+
   elif [[ $selected == "spankbang" ]]; then
     tmp=$(mktemp);
     { 
