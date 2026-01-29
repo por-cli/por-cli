@@ -19,7 +19,6 @@ shift $((OPTIND-1))
 PROXY=""
 set_proxy(){
   PROXY=$(curl -s https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/output/https_alive.txt | shuf -n 1)
-  # PROXY=$(curl -s "http://pubproxy.com/api/proxy?https=true&format=text")
 }
 
 spinner() {
@@ -78,9 +77,7 @@ if [ "$SHOW_HELP" = "1" ]; then
 por-cli — quick search & watch helper
 
 Usage:
-  por-cli           # interactive search (choose provider)
-  por-cli -r        # resume from watch history
-  por-cli -h        # show help
+  por-cli [options]
 
 Options:
   -r            Resume & pick from history
@@ -91,9 +88,12 @@ History file:
   $HIS
 
 Examples:
-  por-cli           # search normally
-  por-cli -r        # pick from past watched videos
-  por-cli -p        # use proxy to unblock website
+  por-cli           # interactive search (choose provider)
+  por-cli -r        # resume from watch history
+  por-cli -rp       # resume from watch history with a proxy
+  por-cli -p        # watch with a proxy to unblock website 
+  por-cli -h        # show help
+
 EOF
 exit 0
 fi
