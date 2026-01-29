@@ -182,7 +182,7 @@ rm -f "$tmp";
       | grep -oP '<a[^>]+href="https://[^"]+/videos/[^"]+"[^>]*>.*?</a>' \
       | sed -nE 's/.*href="([^"]+)".*aria-label="([^"]+)".*(data-src|src)="([^"]+\.jpg)".*/\1\t\2\t\4/p' 
     done
-    notify-send "Pages loaded" "All $PAGE pages fetched. Select a video."
+    notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
   } | 
     awk '!seen[$1]++' |
     fzf --delimiter=$'\t' --with-nth=2 \
@@ -243,7 +243,7 @@ rm -f "$tmp";
         sed -E 's|.*<img[^>]+src="([^"]+)".*?<a[^>]+href="([^"]+/video/[^"]+)".*?title="([^"]+)".*|\2\t\3\t\1|' |
         sed '1,8d' 
       done
-      notify-send "Pages loaded" "All $PAGE pages fetched. Select a video."
+      notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
     } | 
       fzf --delimiter=$'\t' --with-nth=2 \
       --preview 'bash -c "preview {3}"' \
