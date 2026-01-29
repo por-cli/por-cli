@@ -18,7 +18,25 @@ shift $((OPTIND-1))
 
 PROXY=""
 set_proxy(){
-  PROXY=$(curl -s https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/output/https_alive.txt | shuf -n 1)
+  local delay=0.05
+  local spin='|/-\\'
+  local i=0
+
+  while :; do
+    printf "\rLoading proxy... %c" "${spin:i++%4:1}"
+
+    PROXY=$(curl -s https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/output/https_alive.txt | shuf -n 1)
+
+    if curl -s --fail --connect-timeout 1 --max-time 2 \
+        -x "$PROXY" https://api.ipify.org >/dev/null; then
+      printf "\rLoading proxy... done ✓        "
+      printf "\r                               "
+      printf "\r"
+      return
+    fi
+
+    sleep "$delay"
+  done
 }
 
 spinner() {
@@ -41,7 +59,7 @@ preview(){
     curl -s -x "$PROXY" "$img" | chafa --size=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES} -
     return
   else
-    curl -s -x "$PROXY" "$img" | kitty icat --clear --transfer-mode=memory --stdin=no --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0
+    curl -s -x "$PROXY" "$img" | kitty icat --clear --transfer-mode=memory --stdin=yes --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0
     return
   fi
 }
@@ -141,12 +159,16 @@ if [[ $selected == "xhamster" ]]; then
 
   tmp=$(mktemp);
   {
-    PAGE=$( curl -sSf -x "$PROXY" --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
-      grep -B2 '<li class="next">' |
-      grep -oP 'data-page="\K\d+' |
-      tail -n 1
-    )
-    echo "$PAGE" > $tmp
+      while [ -z "$PAGE" ]; do
+        PAGE=$( curl -sSf -x "$PROXY" --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
+          grep -B2 '<li class="next">' |
+          grep -oP 'data-page="\K\d+' |
+          tail -n 1
+        )
+        [ -z "$PAGE" ] 
+      done
+
+      echo "$PAGE" > "$tmp"
   }&
 pid=$!
 
@@ -172,10 +194,14 @@ rm -f "$tmp";
       tmp=\$(mktemp);
       {
         echo \"\$url\" >> \"${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
-        playlist=\$(curl -sSf -x \"$PROXY\" --retry 20 --retry-delay 2 --retry-all-errors \
-          --connect-timeout 10 --max-time 30 \"\$url\" 2>/dev/null \
-          | grep -oP 'https://[^\" ]+\\.m3u8' \
-          | head -n1);
+        playlist=\"\"
+        while [ -z \"\$playlist\" ]; do
+          playlist=\$(curl -sSf -x \"$PROXY\" --retry 20 --retry-delay 2 --retry-all-errors \
+            --connect-timeout 10 --max-time 30 \"\$url\" 2>/dev/null \
+            | grep -oP 'https://[^\" ]+\\.m3u8' \
+            | head -n1);
+          [ -z \"\$playlist\" ]
+        done
         echo \"\$playlist\" > \"\$tmp\";
       } &
     pid=\$!;
@@ -189,12 +215,19 @@ rm -f "$tmp";
   elif [[ $selected == "spankbang" ]]; then
     tmp=$(mktemp);
     { 
-      PAGE=$(curl -Ls -x "$PROXY" "https://spankbang.party/s/$ENCODED_SEARCH" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
-        grep -oP "/s/$ENCODED_SEARCH/\K\d+(?=/)" |
-        sort -n |
-        tail -n1
-      )
-      echo "$PAGE" > $tmp
+      while [ -z "$PAGE" ]; do
+        PAGE=$(curl -Ls -x "$PROXY" \
+          "https://spankbang.party/s/$ENCODED_SEARCH" \
+          -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
+          grep -oP "/s/$ENCODED_SEARCH/\K\d+(?=/)" |
+          sort -n |
+          tail -n1
+        )
+
+        [ -z "$PAGE" ] 
+      done
+
+      echo "$PAGE" > "$tmp"
     }&
   pid=$!
 
@@ -221,15 +254,20 @@ rm -f "$tmp";
         tmp=\$(mktemp);
         {
           echo \"\$url\" >> \"\${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
-          playlist=\$(curl -Lvs -x \"$PROXY\" \"\$url\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
-            tr '\n' ' ' |
-            grep -oP \"'m3u8'\\s*:\\s*\\[\\s*'\\K[^']+\" );
+          playlist=\"\"
+          while [ -z \"\$playlist\" ]; do
+            playlist=\$(curl -Lvs -x \"$PROXY\" \"\$url\" -A \"Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)\" 2>/dev/null |
+              tr '\n' ' ' |
+              grep -oP \"'m3u8'\\s*:\\s*\\[\\s*'\\K[^']+\" );
+            [ -z \"\$playlist\" ]
+          done
           echo \"\$playlist\" > \"\$tmp\";
         }&
       pid=\$!;
       spinner \"\$pid\";
       wait \"\$pid\";
       playlist=\$(cat \"\$tmp\");
+
       rm -f \"\$tmp\";
       [ -n \"\$playlist\" ] && player \"\$playlist\"
       )"
