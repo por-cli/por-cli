@@ -152,10 +152,10 @@ if [[ -z $selected ]]; then
   exit 2
 fi
 
-read -rp "Search: " SEARCH
-ENCODED_SEARCH=${SEARCH// /+}
-
 if [[ $selected == "xhamster" ]]; then
+
+  read -rp "Search: " SEARCH
+  ENCODED_SEARCH=${SEARCH// /+}
 
   tmp=$(mktemp);
   {
@@ -213,13 +213,14 @@ rm -f "$tmp";
     )"
 
   elif [[ $selected == "spankbang" ]]; then
+    read -rp "Search: " SEARCH
+    ENCODED_SEARCH=${SEARCH// /+}
+    GREP_SEARCH=${ENCODED_SEARCH//+/\\+}
     tmp=$(mktemp);
     { 
       while [ -z "$PAGE" ]; do
-        PAGE=$(curl -Ls -x "$PROXY" \
-          "https://spankbang.party/s/$ENCODED_SEARCH" \
-          -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
-          grep -oP "/s/$ENCODED_SEARCH/\K\d+(?=/)" |
+        PAGE=$(curl -Ls -x "$PROXY"  --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://spankbang.party/s/$ENCODED_SEARCH" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
+          grep -oP "/s/$GREP_SEARCH/\K\d+(?=/)" |
           sort -n |
           tail -n1
         )
@@ -237,7 +238,7 @@ rm -f "$tmp";
   rm -f "$tmp";
   {
     for ((i = 1; i <= PAGE; i++)); do
-      curl -Lv -x "$PROXY" "https://spankbang.party/s/$ENCODED_SEARCH/$i" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
+      curl -Lv --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -x "$PROXY" "https://spankbang.party/s/$ENCODED_SEARCH/$i" -A "Mozilla/5.0 (compatible; MSIE 7.01; Windows NT 5.0)" 2>/dev/null |
         tr '\n' ' ' |
         grep -oP '<div[^>]+data-testid="video-item".*?</div>\s*</div>' |
         sed -E 's|.*<img[^>]+src="([^"]+)".*?<a[^>]+href="([^"]+/video/[^"]+)".*?title="([^"]+)".*|\2\t\3\t\1|' |

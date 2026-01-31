@@ -17,6 +17,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/m
 por-cli [OPTIONS]
     Options:
         -r            Resume & pick from history
+        -p            use proxy
         -h, --help    Show this help menu
 ```
 
