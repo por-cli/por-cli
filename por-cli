@@ -55,13 +55,7 @@ spinner() {
 
 preview(){
   local img="$1"
-  if [ -n "$TERMUX_VERSION" ]; then
-    curl -s -x "$PROXY" "$img" | chafa --size=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES} -
-    return
-  else
-    curl -s -x "$PROXY" "$img" | kitty icat --clear --transfer-mode=memory --stdin=yes --place=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0
-    return
-  fi
+  curl -s -x "$PROXY" "$img" | chafa --size=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES} -
 }
 
 player () {
