@@ -7,10 +7,44 @@ This tool scrapes the site [spankbang](https://spankbang.party), [xhamster](http
 This tool also allows to access the content if it is blocked in your region no external vpn is needed
 
 ## Installation
+### Script Installation
 run this one liner bash command to install por-cli (run this on termux if installing on android)
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/setup.sh)
+ curl -fsSL https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/setup.sh | bash
 ```
+
+### Manual Installation
+
+#### For Linux and Mac
+
+requirements:
+* kitty
+* mpv
+* fzf
+* ggrep (for mac only)
+
+```bash
+git clone https://github.com/por-cli/por-cli.git
+cd por-cli
+cp por-cli /usr/local/bin/
+chmod +x /usr/local/bin/por-cli
+```
+
+#### For Android
+
+requirements:
+* termux
+* mpv-android
+* chafa
+* fzf
+
+```bash
+git clone https://github.com/por-cli/por-cli.git
+cd por-cli
+cp por-cli /data/data/com.termux/files/usr/bin/
+chmod +x /data/data/com.termux/files/usr/bin/por-cli
+```
+
 
 ## Usage
 ```bash
