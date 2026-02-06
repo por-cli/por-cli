@@ -64,3 +64,15 @@ por-cli [OPTIONS]
 * fzf
 * chafa 
 * wget
+
+## Patch for arm based Linux
+
+if getting error like "unknown option: --with-shell=bash -c"
+
+run this command
+
+```bash
+sudo sed -i 's/fzf --with-shell="bash -c"/fzf/g' /usr/local/bin/por-cli
+```
+
+this happens because fzf on arm doesnt have --with-shell option so we need to remove it 
