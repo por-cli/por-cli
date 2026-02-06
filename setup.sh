@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
-COMMON_DEPS=(curl sed mpv fzf wget)
-TERMUX_DEPS=(chafa)
-DESKTOP_DEPS=(kitty)
+COMMON_DEPS=(curl sed mpv fzf wget chafa)
+MAC_DEPS=(ggrep)
 MISSING=()
+OS=$(uname -s)
 
-# detect termux
-if [ -n "$TERMUX_VERSION" ]; then
-  DEPS=("${COMMON_DEPS[@]}" "${TERMUX_DEPS[@]}")
-else
-  DEPS=("${COMMON_DEPS[@]}" "${DESKTOP_DEPS[@]}")
+# detect mac
+if [ "$OS" = "Linux" ]; then
+  DEPS=("${COMMON_DEPS[@]}")
+elif [ "$OS" = "Darwin" ]; then
+  DEPS=("${COMMON_DEPS[@]}" "${MAC_DEPS[@]}")
 fi
 
 for dep in "${DEPS[@]}"; do

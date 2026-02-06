@@ -34,6 +34,7 @@ chmod +x /usr/local/bin/por-cli
 
 requirements:
 * termux
+* sed
 * mpv-android
 * chafa
 * fzf
@@ -61,6 +62,5 @@ por-cli [OPTIONS]
 * sed
 * mpv
 * fzf
-* kitty (for linux)
-* chafa (for termux)
+* chafa 
 * wget
