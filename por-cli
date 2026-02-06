@@ -28,11 +28,11 @@ set_proxy(){
     PROXY=$(curl -s https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/output/https_alive.txt | shuf -n 1)
 
     if curl -s --fail --connect-timeout 1 --max-time 2 \
-        -x "$PROXY" https://api.ipify.org >/dev/null; then
-      printf "\rLoading proxy... done ✓        "
-      printf "\r                               "
-      printf "\r"
-      return
+      -x "$PROXY" https://api.ipify.org >/dev/null; then
+    printf "\rLoading proxy... done ✓        "
+    printf "\r                               "
+    printf "\r"
+    return
     fi
 
     sleep "$delay"
@@ -136,7 +136,7 @@ if [ "$RESUME" = "1" ]; then
   fi
   cat $HIS |
     awk '!seen[$1]++' |
-    fzf \
+    fzf --with-shell="bash -c" \
     --bind 'enter:execute(
       url={1};
       echo "$url" >> "${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history";
@@ -165,16 +165,16 @@ if [[ $selected == "xhamster" ]]; then
 
   tmp=$(mktemp);
   {
-      while [ -z "$PAGE" ]; do
-        PAGE=$( curl -sSf -x "$PROXY" --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
-          grep -B2 '<li class="next">' |
-          get_grep 'data-page="\K\d+' |
-          tail -n 1
-        )
-        [ -z "$PAGE" ] 
-      done
+    while [ -z "$PAGE" ]; do
+      PAGE=$( curl -sSf -x "$PROXY" --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
+        grep -B2 '<li class="next">' |
+        get_grep 'data-page="\K\d+' |
+        tail -n 1
+      )
+      [ -z "$PAGE" ] 
+    done
 
-      echo "$PAGE" > "$tmp"
+    echo "$PAGE" > "$tmp"
   }&
 pid=$!
 
@@ -191,8 +191,10 @@ rm "$tmp";
     notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
   } | 
     awk '!seen[$1]++' |
-    fzf --delimiter=$'\t' --with-nth=2 \
-    --preview 'bash -c "preview {3}"' \
+    fzf --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
+    --preview "
+  $(typeset -f preview)
+  preview {3} " \
     --bind "enter:execute(
       $(typeset -f spinner)
       $(typeset -f player)
@@ -253,8 +255,10 @@ rm "$tmp";
       done
       notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
     } | 
-      fzf --delimiter=$'\t' --with-nth=2 \
-      --preview 'bash -c "preview {3}"' \
+      fzf --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
+      --preview "
+    $(typeset -f preview)
+    preview {3} " \
       --bind "enter:execute(
         $(typeset -f spinner)
         $(typeset -f player)
