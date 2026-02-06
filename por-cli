@@ -79,9 +79,9 @@ get_grep(){
   OS=$(uname -s)
 
   if [ "$OS" = "Linux" ]; then
-    grep -oP $@
+    grep -oP "$@"
   elif [ "$OS" = "Darwin" ]; then
-    ggrep -oP $@
+    ggrep -oP "$@"
   fi
 }
 
