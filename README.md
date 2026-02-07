@@ -52,7 +52,8 @@ chmod +x /data/data/com.termux/files/usr/bin/por-cli
 por-cli [OPTIONS]
     Options:
         -r            Resume & pick from history
-        -p            use proxy
+        -p            Use proxy
+        -t            Play video in terminal
         -h, --help    Show this help menu
 ```
 

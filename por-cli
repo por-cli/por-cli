@@ -4,12 +4,14 @@ HIS="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
 RESUME=0
 USE_PROXY=0
 SHOW_HELP=0
+TERMINAL=0
 
-while getopts "rph" opt; do
+while getopts "rpht" opt; do
   case "$opt" in
     r) RESUME=1 ;;
     p) USE_PROXY=1 ;;
     h) SHOW_HELP=1 ;;
+    t) TERMINAL=1 ;;
     *) exit 1 ;;
   esac
 done
@@ -65,7 +67,11 @@ player () {
     return
   else
     {
-      mpv -fs --http-proxy="$PROXY" --msg-level=all=no $vid
+      if [ "$TERMINAL" = "0" ]; then
+        mpv -fs --http-proxy="$PROXY" --msg-level=all=no $vid
+      else
+        mpv --vo=kitty --http-proxy="$PROXY" --msg-level=all=no $vid
+      fi
     }&
   pid=$!;
   spinner "$pid";
@@ -91,8 +97,8 @@ export -f preview
 export -f player
 
 
-if [ "$SHOW_HELP" = "1" ] && { [ "$RESUME" = "1" ] || [ "$USE_PROXY" = "1" ]; }; then
-  echo "Error: -h cannot be used with -r or -p"
+if [ "$SHOW_HELP" = "1" ] && { [ "$TERMINAL" = "1" ] || [ "$RESUME" = "1" ] || [ "$USE_PROXY" = "1" ]; }; then
+  echo "Error: -h cannot be used with -r, -t or -p"
   exit 1
 fi
 
@@ -106,6 +112,7 @@ Usage:
 Options:
   -r            Resume & pick from history
   -p            Use proxy
+  -t            Play video in terminal (only supported on terminal with kitty graphics protocol)
   -h, --help    Show this help menu
 
 History file:
@@ -113,6 +120,7 @@ History file:
 
 Examples:
   por-cli           # interactive search (choose provider)
+  por-cli -t        # play video in terminal
   por-cli -r        # resume from watch history
   por-cli -rp       # resume from watch history with a proxy
   por-cli -p        # watch with a proxy to unblock website 
