@@ -53,7 +53,7 @@ por-cli [OPTIONS]
     Options:
         -r            Resume & pick from history
         -p            Use proxy
-        -t            Play video in terminal
+        -t            Play video in terminal (only work on terms with kitty graphics protocol)
         -h, --help    Show this help menu
 ```
 
