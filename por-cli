@@ -95,7 +95,7 @@ export -f spinner
 export -f get_grep
 export -f preview
 export -f player
-
+export TERMINAL
 
 if [ "$SHOW_HELP" = "1" ] && { [ "$TERMINAL" = "1" ] || [ "$RESUME" = "1" ] || [ "$USE_PROXY" = "1" ]; }; then
   echo "Error: -h cannot be used with -r, -t or -p"
@@ -207,6 +207,7 @@ rm "$tmp";
       $(typeset -f spinner)
       $(typeset -f player)
       $(typeset -f get_grep)
+      $(typeset -x TERMINAL)
       url='{1}';
       tmp=\$(mktemp);
       {
@@ -271,6 +272,7 @@ rm "$tmp";
         $(typeset -f spinner)
         $(typeset -f player)
         $(typeset -f get_grep)
+        $(typeset -x TERMINAL)
         url=https://spankbang.party{1};
         tmp=\$(mktemp);
         {
