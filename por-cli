@@ -27,7 +27,7 @@ set_proxy(){
   while :; do
     printf "\rLoading proxy... %c" "${spin:i++%4:1}"
 
-    PROXY=$(curl -s https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/output/https_alive.txt | shuf -n 1)
+    PROXY=$(curl -s https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/output/https_alive.txt | get_shuf -n 1)
 
     if curl -s --fail --connect-timeout 1 --max-time 2 \
       -x "$PROXY" https://api.ipify.org >/dev/null; then
@@ -81,6 +81,15 @@ player () {
 }
 
 
+get_shuf(){
+  OS=$(uname -s)
+
+  if [ "$OS" = "Linux" ]; then
+    shuf "$@"
+  elif [ "$OS" = "Darwin" ]; then
+    gshuf "$@"
+  fi
+}
 get_grep(){
   OS=$(uname -s)
 
@@ -92,6 +101,7 @@ get_grep(){
 }
 
 export -f spinner
+export -f get_shuf
 export -f get_grep
 export -f preview
 export -f player

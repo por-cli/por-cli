@@ -22,6 +22,7 @@ requirements:
 * mpv
 * fzf
 * ggrep (for mac only)
+* coreutils (for mac only)
 
 ```bash
 git clone https://github.com/por-cli/por-cli.git

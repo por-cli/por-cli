@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 COMMON_DEPS=(curl sed mpv fzf wget chafa)
-MAC_DEPS=(ggrep)
+MAC_DEPS=(ggrep gshuf)
 MISSING=()
 OS=$(uname -s)
 
@@ -35,4 +35,3 @@ fi
 HIS="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
 mkdir -p "$(dirname "$HIS")"
 touch "$HIS"
-
