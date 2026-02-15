@@ -67,7 +67,7 @@ player () {
   vid="$1"
   name="$2"
   if [ "$DOWNLOAD" = "1" ]; then
-    yt-dlp $vid -o "$name.mp4"
+    yt-dlp $vid -o "$name.mp4" --proxy "$PROXY"
   else
     if [ -n "$TERMUX_VERSION" ]; then
       am start -n is.xyz.mpv/is.xyz.mpv.MPVActivity -e args "--http-proxy=$PROXY" -e filepath $vid
