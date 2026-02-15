@@ -132,6 +132,7 @@ Options:
   -r            Resume & pick from history
   -p            Use proxy
   -t            Play video in terminal (only supported on terminal with kitty graphics protocol)
+  -d            Download selected video
   -h, --help    Show this help menu
 
 History file:
@@ -140,8 +141,9 @@ History file:
 Examples:
   por-cli           # interactive search (choose provider)
   por-cli -t        # play video in terminal
-  por-cli -r        # resume from watch history
-  por-cli -rp       # resume from watch history with a proxy
+  por-cli -d        # download the selected video
+  por-cli -r        # search from watch history
+  por-cli -rp       # search from watch history with a proxy
   por-cli -p        # watch with a proxy to unblock website 
   por-cli -h        # show help
 
