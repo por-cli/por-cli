@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-COMMON_DEPS=(curl sed mpv fzf wget chafa)
+COMMON_DEPS=(curl sed mpv fzf wget chafa yt-dlp)
 MAC_DEPS=(ggrep gshuf)
 MISSING=()
 OS=$(uname -s)

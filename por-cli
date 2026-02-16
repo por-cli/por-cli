@@ -5,13 +5,15 @@ RESUME=0
 USE_PROXY=0
 SHOW_HELP=0
 TERMINAL=0
+DOWNLOAD=0
 
-while getopts "rpht" opt; do
+while getopts "rphtd" opt; do
   case "$opt" in
     r) RESUME=1 ;;
     p) USE_PROXY=1 ;;
     h) SHOW_HELP=1 ;;
     t) TERMINAL=1 ;;
+    d) DOWNLOAD=1 ;;
     *) exit 1 ;;
   esac
 done
@@ -43,11 +45,12 @@ set_proxy(){
 
 spinner() {
   local pid=$1
+  local msg="$2"
   local delay=0.1
   local spin='|/-\'
   while kill -0 $pid 2>/dev/null; do
     for i in $(seq 0 3); do
-      printf "\r[%c] Loading..." "${spin:$i:1}"
+      printf "\r[%c] Loading $msg..." "${spin:$i:1}"
       sleep $delay
     done
   done
@@ -62,21 +65,26 @@ preview(){
 
 player () {
   vid="$1"
-  if [ -n "$TERMUX_VERSION" ]; then
-    am start -n is.xyz.mpv/is.xyz.mpv.MPVActivity -e args "--http-proxy=$PROXY" -e filepath $vid
-    return
+  name="$2"
+  if [ "$DOWNLOAD" = "1" ]; then
+    yt-dlp $vid -o "$name.mp4" --proxy "$PROXY"
   else
-    {
-      if [ "$TERMINAL" = "0" ]; then
-        mpv -fs --http-proxy="$PROXY" --msg-level=all=no $vid
-      else
-        mpv --vo=kitty --http-proxy="$PROXY" --msg-level=all=no $vid
-      fi
-    }&
-  pid=$!;
-  spinner "$pid";
-  wait "$pid";
-  return
+    if [ -n "$TERMUX_VERSION" ]; then
+      am start -n is.xyz.mpv/is.xyz.mpv.MPVActivity -e args "--http-proxy=$PROXY" -e filepath $vid
+      return
+    else
+      {
+        if [ "$TERMINAL" = "0" ]; then
+          mpv -fs --http-proxy="$PROXY" --msg-level=all=no $vid
+        else
+          mpv --vo=kitty --http-proxy="$PROXY" --msg-level=all=no $vid
+        fi
+      }&
+    pid=$!;
+    spinner "$pid" "video";
+    wait "$pid";
+    return
+    fi
   fi
 }
 
@@ -106,6 +114,7 @@ export -f get_grep
 export -f preview
 export -f player
 export TERMINAL
+export DOWNLOAD
 
 if [ "$SHOW_HELP" = "1" ] && { [ "$TERMINAL" = "1" ] || [ "$RESUME" = "1" ] || [ "$USE_PROXY" = "1" ]; }; then
   echo "Error: -h cannot be used with -r, -t or -p"
@@ -123,6 +132,7 @@ Options:
   -r            Resume & pick from history
   -p            Use proxy
   -t            Play video in terminal (only supported on terminal with kitty graphics protocol)
+  -d            Download selected video
   -h, --help    Show this help menu
 
 History file:
@@ -131,8 +141,10 @@ History file:
 Examples:
   por-cli           # interactive search (choose provider)
   por-cli -t        # play video in terminal
-  por-cli -r        # resume from watch history
-  por-cli -rp       # resume from watch history with a proxy
+  por-cli -d        # download the selected video
+  por-cli -dp       # download the selected video with a proxy
+  por-cli -r        # search from watch history
+  por-cli -rp       # search from watch history with a proxy
   por-cli -p        # watch with a proxy to unblock website 
   por-cli -h        # show help
 
@@ -196,7 +208,7 @@ if [[ $selected == "xhamster" ]]; then
   }&
 pid=$!
 
-spinner "$pid"
+spinner "$pid" "pages"
 wait "$pid"
 PAGE=$(cat $tmp)
 rm "$tmp";
@@ -219,6 +231,7 @@ rm "$tmp";
       $(typeset -f get_grep)
       $(typeset -x TERMINAL)
       url='{1}';
+      name={2};
       tmp=\$(mktemp);
       {
         echo \"\$url\" >> \"${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
@@ -233,11 +246,11 @@ rm "$tmp";
         echo \"\$playlist\" > \"\$tmp\";
       } &
     pid=\$!;
-    spinner \"\$pid\";
+    spinner \"\$pid\" \"playlist\";
     wait \"\$pid\";
     playlist=\$(cat \"\$tmp\");
     rm \"\$tmp\";
-    [ -n \"\$playlist\" ] && player \"\$playlist\"
+    [ -n \"\$playlist\" ] && player \"\$playlist\" \"\$name\"
     )"
 
   elif [[ $selected == "spankbang" ]]; then
@@ -260,7 +273,7 @@ rm "$tmp";
     }&
   pid=$!
 
-  spinner "$pid"
+  spinner "$pid" "pages"
   wait "$pid"
   PAGE=$(cat $tmp)
   rm "$tmp";
@@ -284,6 +297,7 @@ rm "$tmp";
         $(typeset -f get_grep)
         $(typeset -x TERMINAL)
         url=https://spankbang.party{1};
+        name={2};
         tmp=\$(mktemp);
         {
           echo \"\$url\" >> \"\${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
@@ -297,12 +311,11 @@ rm "$tmp";
           echo \"\$playlist\" > \"\$tmp\";
         }&
       pid=\$!;
-      spinner \"\$pid\";
+      spinner \"\$pid\" \"playlist\";
       wait \"\$pid\";
       playlist=\$(cat \"\$tmp\");
-
       rm \"\$tmp\";
-      [ -n \"\$playlist\" ] && player \"\$playlist\"
+      [ -n \"\$playlist\" ] && player \"\$playlist\" \"\$name\"
       )"
       exit 0
     else
