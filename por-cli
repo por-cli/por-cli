@@ -142,6 +142,7 @@ Examples:
   por-cli           # interactive search (choose provider)
   por-cli -t        # play video in terminal
   por-cli -d        # download the selected video
+  por-cli -dp       # download the selected video with a proxy
   por-cli -r        # search from watch history
   por-cli -rp       # search from watch history with a proxy
   por-cli -p        # watch with a proxy to unblock website 
