@@ -39,13 +39,14 @@ It lets you:
 - `fzf`
 - `mpv`
 - `chafa`
+- `yt-dlp`
 
 ### macOS Dependencies
 
 Install dependencies with Homebrew:
 
 ```bash
-brew install curl wget fzf mpv chafa
+brew install curl wget fzf mpv chafa ggrep coreutils
 ```
 
 > The installer checks required dependencies and exits with a list of anything missing.
@@ -54,46 +55,52 @@ brew install curl wget fzf mpv chafa
 
 ## Installation
 
-### Automatic Installation
+### Script Installation
 
-Run:
+Run this command:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/setup.sh | bash
 ```
 
-The script installs `por-cli` to:
-
-- `/usr/local/bin/por-cli` on desktop Linux
-- `/data/data/com.termux/files/usr/bin/por-cli` on Termux
-
 ---
 
 ### Manual Installation
 
-Clone the repository:
+#### Linux and macOS
+
+Requirements:
+
+- mpv
+- fzf
+- chafa
+- ggrep (macOS only)
+- coreutils (macOS only)
+- yt-dlp (for downloading videos)
 
 ```bash
 git clone https://github.com/por-cli/por-cli.git
 cd por-cli
+cp por-cli /usr/local/bin/
+chmod +x /usr/local/bin/por-cli
 ```
 
-Make the script executable:
+#### Android (Termux)
+
+Requirements:
+
+- termux
+- sed
+- mpv-android
+- chafa
+- fzf
+- yt-dlp (for downloading videos)
 
 ```bash
-chmod +x por-cli
-```
-
-Move it to a directory in your PATH:
-
-```bash
-sudo mv por-cli /usr/local/bin/
-```
-
-Verify installation:
-
-```bash
-por-cli -h
+git clone https://github.com/por-cli/por-cli.git
+cd por-cli
+cp por-cli /data/data/com.termux/files/usr/bin/
+chmod +x /data/data/com.termux/files/usr/bin/por-cli
 ```
 
 ---
@@ -101,17 +108,15 @@ por-cli -h
 ## Usage
 
 ```bash
-por-cli [options]
+por-cli [OPTIONS]
 ```
 
----
+### Options
 
-## Options
-
-- `-r` Resume and pick from history
-- `-p` Use proxy for requests/playback
-- `-d` Download selected video
-- `-h` Show help menu
+- `-r` Resume & pick from history
+- `-p` Use proxy
+- `-d` Download video
+- `-h`, `--help` Show help menu
 
 ---
 
@@ -145,3 +150,22 @@ The file is created automatically during setup and used by `-r` mode.
 - Provider websites may change markup and occasionally break scraping.
 - Proxy quality depends on currently available endpoints.
 - For best experience use recent versions of `mpv`, `fzf`, and `chafa`.
+
+---
+
+## Patch for ARM based Linux
+
+If you get an error like:
+
+```
+unknown option: --with-shell=bash -c
+```
+
+Run:
+
+```bash
+sudo sed -i 's/fzf --with-shell="bash -c"/fzf/g' /usr/local/bin/por-cli
+```
+
+This happens because some ARM builds of `fzf` do not support the `--with-shell` option.
+
