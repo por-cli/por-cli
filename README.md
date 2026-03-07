@@ -1,29 +1,82 @@
 # por-cli
 
-A cli tool to watch Adult Content.
+`por-cli` is a terminal-based video search and playback helper inspired by [ani-cli](https://github.com/pystardust/ani-cli).
 
-This tool is heavily inspired by [ani-cli](https://github.com/pystardust/ani-cli)
-This tool scrapes the site [spankbang](https://spankbang.party), [xhamster](https://xhamster1.desi) and plays it on mpv.
-This tool also allows to access the content if it is blocked in your region no external vpn is needed
+This tool scrapes the sites [spankbang](https://spankbang.party) and [xhamster](https://xhamster1.desi) and plays videos directly using `mpv`.
+
+It also allows access to content even if it is blocked in your region (no external VPN required).
+
+It lets you:
+
+- Search multiple providers from your terminal
+- Preview thumbnails inside `fzf`
+- Play streams directly with `mpv`
+- Download videos
+- Keep and resume watch history
+- Optionally route requests through a proxy (`-p`)
+
+---
+
+## Features
+
+- Interactive provider selection (`xhamster`, `spankbang`, `eporner`)
+- Fuzzy video selection using `fzf`
+- Thumbnail preview using `chafa`
+- Resume playback from history (`-r`)
+- Optional proxy mode (`-p`)
+- Download videos
+
+---
+
+## Requirements
+
+### Common Dependencies
+
+- `bash`
+- `curl`
+- `sed`
+- `wget`
+- `fzf`
+- `mpv`
+- `chafa`
+- `yt-dlp`
+
+### macOS Dependencies
+
+Install dependencies with Homebrew:
+
+```bash
+brew install curl wget fzf mpv chafa ggrep coreutils
+```
+
+> The installer checks required dependencies and exits with a list of anything missing.
+
+---
 
 ## Installation
+
 ### Script Installation
-run this one liner bash command to install por-cli (run this on termux if installing on android)
+
+Run this command:
+
 ```bash
- curl -fsSL https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/setup.sh | bash
 ```
+
+---
 
 ### Manual Installation
 
-#### For Linux and Mac
+#### Linux and macOS
 
-requirements:
-* kitty
-* mpv
-* fzf
-* ggrep (for mac only)
-* coreutils (for mac only)
-* yt-dlp (only for downlaoding videos)
+Requirements:
+
+- mpv
+- fzf
+- chafa
+- ggrep (macOS only)
+- coreutils (macOS only)
+- yt-dlp (for downloading videos)
 
 ```bash
 git clone https://github.com/por-cli/por-cli.git
@@ -32,15 +85,16 @@ cp por-cli /usr/local/bin/
 chmod +x /usr/local/bin/por-cli
 ```
 
-#### For Android
+#### Android (Termux)
 
-requirements:
-* termux
-* sed
-* mpv-android
-* chafa
-* fzf
-* yt-dlp (only for downlaoding videos)
+Requirements:
+
+- termux
+- sed
+- mpv-android
+- chafa
+- fzf
+- yt-dlp (for downloading videos)
 
 ```bash
 git clone https://github.com/por-cli/por-cli.git
@@ -49,36 +103,69 @@ cp por-cli /data/data/com.termux/files/usr/bin/
 chmod +x /data/data/com.termux/files/usr/bin/por-cli
 ```
 
+---
 
 ## Usage
+
 ```bash
 por-cli [OPTIONS]
-    Options:
-        -r            Resume & pick from history
-        -p            Use proxy
-        -t            Play video in terminal (only work on terms with kitty graphics protocol)
-        -d            Download video 
-        -h, --help    Show this help menu
 ```
 
-## Dependencies
+### Options
 
-* curl
-* sed
-* mpv
-* fzf
-* chafa 
-* wget
-* yt-dlp (only for downlaoding videos)
+- `-r` Resume & pick from history
+- `-p` Use proxy
+- `-d` Download video
+- `-h`, `--help` Show help menu
 
-## Patch for arm based Linux
+---
 
-if getting error like "unknown option: --with-shell=bash -c"
+## Examples
 
-run this command
+```bash
+por-cli       # interactive search
+por-cli -r    # resume from watch history
+por-cli -p    # run with proxy enabled
+por-cli -rp   # resume with proxy enabled
+por-cli -d    # download video
+por-cli -h    # show help text
+```
+
+---
+
+## History
+
+Watch history is stored at:
+
+```
+${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history
+```
+
+The file is created automatically during setup and used by `-r` mode.
+
+---
+
+## Notes
+
+- Provider websites may change markup and occasionally break scraping.
+- Proxy quality depends on currently available endpoints.
+- For best experience use recent versions of `mpv`, `fzf`, and `chafa`.
+
+---
+
+## Patch for ARM based Linux
+
+If you get an error like:
+
+```
+unknown option: --with-shell=bash -c
+```
+
+Run:
 
 ```bash
 sudo sed -i 's/fzf --with-shell="bash -c"/fzf/g' /usr/local/bin/por-cli
 ```
 
-this happens because fzf on arm doesnt have --with-shell option so we need to remove it 
+This happens because some ARM builds of `fzf` do not support the `--with-shell` option.
+
