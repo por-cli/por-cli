@@ -1,12 +1,33 @@
 #!/usr/bin/env bash
 HIS="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
 
+ # --prompt=STR
+ #        Input prompt (default: '> ')
+ #
+ # --layout=LAYOUT
+ #          Choose the layout (default: default)
+ #
+ #          default       Display from the bottom of the screen
+ #          reverse       Display from the top of the screen
+ #          reverse-list  Display from the top of the screen, prompt at the bottom
+
 RESUME=0
 USE_PROXY=0
 SHOW_HELP=0
 TERMINAL=0
 DOWNLOAD=0
 
+get_open(){
+if [ -n "$TERMUX_VERSION" ]; then
+   termux-open $1
+
+elif [ $(uname -s) = "Darwin" ]; then
+   open $1
+ else
+  xdg-open $1
+fi
+}
+  
 while getopts "rphtd" opt; do
   case "$opt" in
     r) RESUME=1 ;;
@@ -54,7 +75,7 @@ spinner() {
       sleep $delay
     done
   done
-  printf "\r                "
+  printf "\r                            "
   printf "\r"
 }
 
@@ -98,6 +119,7 @@ get_shuf(){
     gshuf "$@"
   fi
 }
+
 get_grep(){
   OS=$(uname -s)
 
@@ -166,7 +188,7 @@ if [ "$RESUME" = "1" ]; then
   fi
   cat $HIS |
     awk '!seen[$1]++' |
-    fzf --with-shell="bash -c" \
+    fzf --prompt="filter:" --layout=reverse --with-shell="bash -c" \
     --bind 'enter:execute(
       url={1};
       echo "$url" >> "${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history";
@@ -180,8 +202,15 @@ if [ "$RESUME" = "1" ]; then
 fi
 
 
-provider=`echo "xhamster spankbang eporner" | tr ' ' '\n'`
-selected=`printf "$provider" | fzf`
+provider=`echo "xhamster spankbang donate" | tr ' ' '\n'`
+selected=`printf "$provider" | fzf --layout=reverse\
+  --prompt="filter:" --header='searches xhamster1.desi' \
+  --bind 'focus:transform-header:
+case {} in
+  donate) echo redircets to donation\ ;;
+  spankbang) echo searches\ spankbang.party ;;
+  xhamster) echo searches\ xhamster.desi ;;
+esac'`
 
 if [[ -z $selected ]]; then
   echo "No provider selected" >&2
@@ -221,7 +250,7 @@ rm "$tmp";
     notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
   } | 
     awk '!seen[$1]++' |
-    fzf --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
+    fzf --prompt="filter:" --layout=reverse --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
     --preview "
   $(typeset -f preview)
   preview {3} " \
@@ -252,6 +281,9 @@ rm "$tmp";
     rm \"\$tmp\";
     [ -n \"\$playlist\" ] && player \"\$playlist\" \"\$name\"
     )"
+    pkill $pid
+    echo $pid
+    exit 0
 
   elif [[ $selected == "spankbang" ]]; then
     read -rp "Search: " SEARCH
@@ -287,10 +319,8 @@ rm "$tmp";
       done
       notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
     } | 
-      fzf --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
-      --preview "
-    $(typeset -f preview)
-    preview {3} " \
+      fzf --prompt="filter:" --layout=reverse --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
+      --preview " $(typeset -f preview) preview {3} " \
       --bind "enter:execute(
         $(typeset -f spinner)
         $(typeset -f player)
@@ -317,7 +347,21 @@ rm "$tmp";
       rm \"\$tmp\";
       [ -n \"\$playlist\" ] && player \"\$playlist\" \"\$name\"
       )"
+      pkill $pid
       exit 0
+
+  elif [[ $selected == "donate" ]]; then
+    sponsor=`echo "buymeacoffee github" | tr ' ' '\n'`
+    selected=`printf "$sponsor" | fzf --prompt="filter:" --layout=reverse`
+      if [[ $selected == "github" ]]; then
+        get_open "https://github.com/sponsors/GhostGamer6969"
+        echo "thank you for deciding to donate"
+      elif [[ $selected=="buymeacoffee" ]]; then
+        get_open "https://buymeacoffee.com/ghostgamer"
+        echo "thank you for deciding to donate"
+      else
+        echo "feel free to still contact me for any issues"
+      fi
     else
       echo "WORK IN PROGRESS FOR $selected" >&2
       exit 1
