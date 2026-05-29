@@ -1,16 +1,6 @@
 #!/usr/bin/env bash
 HIS="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
 
- # --prompt=STR
- #        Input prompt (default: '> ')
- #
- # --layout=LAYOUT
- #          Choose the layout (default: default)
- #
- #          default       Display from the bottom of the screen
- #          reverse       Display from the top of the screen
- #          reverse-list  Display from the top of the screen, prompt at the bottom
-
 RESUME=0
 USE_PROXY=0
 SHOW_HELP=0
