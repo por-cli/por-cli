@@ -310,7 +310,9 @@ rm "$tmp";
       notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
     } | 
       fzf --prompt="filter:" --layout=reverse --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
-      --preview " $(typeset -f preview) preview {3} " \
+      --preview "
+  $(typeset -f preview)
+  preview {3} " \
       --bind "enter:execute(
         $(typeset -f spinner)
         $(typeset -f player)
