@@ -2,7 +2,7 @@
 
 `por-cli` is a terminal-based video search and playback helper inspired by [ani-cli](https://github.com/pystardust/ani-cli).
 
-This tool scrapes the sites [spankbang](https://spankbang.party) and [xhamster](https://xhamster1.desi) and plays videos directly using `mpv`.
+This tool scrapes adult video sites and plays videos directly using `mpv`.
 
 It also allows access to content even if it is blocked in your region (no external VPN required).
 
@@ -19,12 +19,12 @@ It lets you:
 
 ## Features
 
-- Interactive provider selection (`xhamster`, `spankbang`, `eporner`)
+- Interactive provider selection (`xhamster`, `xvideos`, `eporner`, `donate`)
 - Fuzzy video selection using `fzf`
 - Thumbnail preview using `chafa`
 - Resume playback from history (`-r`)
 - Optional proxy mode (`-p`)
-- Download videos
+- Download videos (`-d`)
 
 ---
 
@@ -34,19 +34,19 @@ It lets you:
 
 - `bash`
 - `curl`
-- `sed`
-- `wget`
 - `fzf`
 - `mpv`
 - `chafa`
 - `yt-dlp`
+- `jq`
+- `sed`
 
 ### macOS Dependencies
 
 Install dependencies with Homebrew:
 
 ```bash
-brew install curl wget fzf mpv chafa ggrep coreutils
+brew install curl fzf mpv chafa jq coreutils
 ```
 
 > The installer checks required dependencies and exits with a list of anything missing.
@@ -74,6 +74,7 @@ Requirements:
 - mpv
 - fzf
 - chafa
+- jq (for eporner API parsing)
 - ggrep (macOS only)
 - coreutils (macOS only)
 - yt-dlp (for downloading videos)
@@ -90,10 +91,10 @@ chmod +x /usr/local/bin/por-cli
 Requirements:
 
 - termux
-- sed
 - mpv-android
 - chafa
 - fzf
+- jq
 - yt-dlp (for downloading videos)
 
 ```bash
@@ -116,6 +117,7 @@ por-cli [OPTIONS]
 - `-r` Resume & pick from history
 - `-p` Use proxy
 - `-d` Download video
+- `-t` Play video in terminal (kitty graphics protocol)
 - `-h`, `--help` Show help menu
 
 ---
@@ -130,6 +132,18 @@ por-cli -rp   # resume with proxy enabled
 por-cli -d    # download video
 por-cli -h    # show help text
 ```
+
+---
+
+## Supported Providers
+
+| Provider | Method | Notes |
+|----------|--------|-------|
+| xhamster | HTML scraping | Uses `grep -oP` with PCRE patterns |
+| xvideos  | HTML scraping | Extracts `thumb-block` divs |
+| eporner  | JSON API v2   | Clean `jq` parsing, reliable pagination |
+
+**Removed:** spankbang — the `spankbang.party` domain now serves Cloudflare challenge pages for all curl requests, making it incompatible with a shell-script scraper.
 
 ---
 
@@ -149,7 +163,7 @@ The file is created automatically during setup and used by `-r` mode.
 
 - Provider websites may change markup and occasionally break scraping.
 - Proxy quality depends on currently available endpoints.
-- For best experience use recent versions of `mpv`, `fzf`, and `chafa`.
+- For best experience use recent versions of `mpv`, `fzf`, `chafa`, and `jq`.
 
 ---
 
@@ -168,4 +182,3 @@ sudo sed -i 's/fzf --with-shell="bash -c"/fzf/g' /usr/local/bin/por-cli
 ```
 
 This happens because some ARM builds of `fzf` do not support the `--with-shell` option.
-
