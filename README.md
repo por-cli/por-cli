@@ -106,6 +106,77 @@ chmod +x /data/data/com.termux/files/usr/bin/por-cli
 
 ---
 
+### NixOS / Home Manager
+
+This repository provides a flake with a package, home-manager module, and NixOS module.
+
+#### Flake-based Home Manager
+
+Add the flake input to your `flake.nix`:
+
+```nix
+inputs.por-cli = {
+  url = "github:por-cli/por-cli";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
+
+Import the home-manager module and enable it:
+
+```nix
+{ inputs, ... }: {
+  imports = [ inputs.por-cli.homeManagerModules.default ];
+
+  programs.por-cli.enable = true;
+}
+```
+
+#### Flake-based NixOS
+
+Add the flake input to your `flake.nix`:
+
+```nix
+inputs.por-cli = {
+  url = "github:por-cli/por-cli";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
+
+Import the NixOS module and enable it:
+
+```nix
+{ inputs, ... }: {
+  imports = [ inputs.por-cli.nixosModules.default ];
+
+  programs.por-cli.enable = true;
+}
+```
+
+#### Non-flake (traditional NixOS)
+
+Install directly from the flake without enabling flakes:
+
+```nix
+# configuration.nix
+{ pkgs, ... }: {
+  environment.systemPackages = [
+    (builtins.getFlake "github:por-cli/por-cli").packages.${pkgs.system}.default
+  ];
+}
+```
+
+Or run directly without installing:
+
+```bash
+nix run github:por-cli/por-cli --
+```
+
+> This opens the interactive terminal by default.
+
+> All runtime dependencies (`mpv`, `fzf`, `chafa`, `yt-dlp`, `jq`, `curl`, etc.) are bundled into the wrapped binary — no need to install them separately.
+
+---
+
 ## Usage
 
 ```bash
