@@ -215,13 +215,16 @@ if [[ $selected == "xhamster" ]]; then
 
   tmp=$(mktemp);
   {
+    PAGE=""
     while [ -z "$PAGE" ]; do
-      PAGE=$( curl -sSf -x "$PROXY" --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 "https://xhamster1.desi/search/$ENCODED_SEARCH" 2>/dev/null|
-        grep -B2 '<li class="next">' |
-        get_grep 'data-page="\K\d+' |
+      PAGE=$(curl -sSf -x "$PROXY" --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 \
+        "https://xhamster1.desi/search/$ENCODED_SEARCH" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" 2>/dev/null |
+        tr '\n' ' ' |
+        grep -oP 'data-page="\K\d+' |
+        sort -n |
         tail -n 1
       )
-      [ -z "$PAGE" ] 
+      [ -z "$PAGE" ] && sleep 1
     done
 
     echo "$PAGE" > "$tmp"
@@ -232,49 +235,43 @@ spinner "$pid" "pages"
 wait "$pid"
 PAGE=$(cat $tmp)
 rm "$tmp";
-{ 
+tmp_fifo=$(mktemp -u)
+mkfifo "$tmp_fifo"
+{
   for ((i = 1; i <= PAGE; i++)); do
-    curl -sSf -x "$PROXY" --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 https://xhamster1.desi/search/$ENCODED_SEARCH?page=$i 2>/dev/null \
-      | get_grep '<a[^>]+href="https://[^"]+/videos/[^"]+"[^>]*>.*?</a>' \
-      | sed -nE 's/.*href="([^"]+)".*aria-label="([^"]+)".*(data-src|src)="([^"]+\.jpg)".*/\1\t\2\t\4/p' 
-    done
-    notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
-  } | 
-    awk '!seen[$1]++' |
-    fzf --prompt="filter:" --layout=reverse --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
-    --preview "
-  $(typeset -f preview)
-  preview {3} " \
-    --bind "enter:execute(
-      $(typeset -f spinner)
-      $(typeset -f player)
-      $(typeset -f get_grep)
-      $(typeset -x TERMINAL)
-      url='{1}';
-      name={2};
-      tmp=\$(mktemp);
-      {
-        echo \"\$url\" >> \"${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
-        playlist=\"\"
-        while [ -z \"\$playlist\" ]; do
-          playlist=\$(curl -sSf -x \"$PROXY\" --retry 20 --retry-delay 2 --retry-all-errors \
-            --connect-timeout 10 --max-time 30 \"\$url\" 2>/dev/null \
-            | get_grep 'https://[^\" ]+\\.m3u8' \
-            | head -n1);
-          [ -z \"\$playlist\" ]
-        done
-        echo \"\$playlist\" > \"\$tmp\";
-      } &
-    pid=\$!;
-    spinner \"\$pid\" \"playlist\";
-    wait \"\$pid\";
-    playlist=\$(cat \"\$tmp\");
-    rm \"\$tmp\";
-    [ -n \"\$playlist\" ] && player \"\$playlist\" \"\$name\"
-    )"
-    pkill $pid
-    echo $pid
-    exit 0
+    curl -sSf -x "$PROXY" --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 \
+      "https://xhamster1.desi/search/$ENCODED_SEARCH?page=$i" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" 2>/dev/null \
+      | get_grep '<a[^>]+href="https://[^"]+/videos/[^"]+"[^>]+aria-label="[^"]+"[^>]*>.*?</a>' \
+      | sed -nE 's|.*href="([^"]+)".*aria-label="([^"]+)".*src="([^"]+)".*|\1\t\2\t\3|p'
+  done
+  notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
+} > "$tmp_fifo" &
+producer_pid=$!
+
+awk '!seen[$1]++' < "$tmp_fifo" | fzf --prompt="filter:" --layout=reverse --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
+  --preview "
+$(typeset -f preview)
+preview {3} " \
+  --bind "enter:execute(
+    $(typeset -f spinner)
+    $(typeset -f player)
+    $(typeset -f get_grep)
+    $(typeset -x TERMINAL)
+    url='{1}';
+    name={2};
+    {
+      echo \"\$url\" >> \"${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history\";
+    } &
+  pid=\$!;
+  spinner \"\$pid\" \"playlist\";
+  wait \"\$pid\";
+  player \"\$url\" \"\$name\"
+  )" || true
+
+kill "$producer_pid" 2>/dev/null || true
+wait "$producer_pid" 2>/dev/null || true
+rm -f "$tmp_fifo"
+exit 0
 
   elif [[ $selected == "eporner" ]]; then
     read -rp "Search: " SEARCH
@@ -294,6 +291,8 @@ rm "$tmp";
     wait "$pid"
     PAGE=$(cat "$tmp")
     rm "$tmp";
+    tmp_fifo=$(mktemp -u)
+    mkfifo "$tmp_fifo"
     {
       for ((i = 1; i <= PAGE; i++)); do
         curl -Ls --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -x "$PROXY" \
@@ -302,12 +301,13 @@ rm "$tmp";
           2>/dev/null | jq -r '.videos[] | [.url, .title, .default_thumb.src] | @tsv'
       done
       notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
-    } |
-      awk '!seen[$1]++' |
-      fzf --prompt="filter:" --layout=reverse --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
+    } > "$tmp_fifo" &
+    producer_pid=$!
+
+    awk '!seen[$1]++' < "$tmp_fifo" | fzf --prompt="filter:" --layout=reverse --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
       --preview "
-  $(typeset -f preview)
-  preview {3} " \
+$(typeset -f preview)
+preview {3} " \
       --bind "enter:execute(
         $(typeset -f spinner)
         $(typeset -f player)
@@ -326,9 +326,12 @@ rm "$tmp";
       playlist=\$(cat \"\$tmp\");
       rm \"\$tmp\";
       [ -n \"\$playlist\" ] && player \"\$playlist\" \"\$name\"
-      )"
-      pkill $pid
-      exit 0
+      )" || true
+
+    kill "$producer_pid" 2>/dev/null || true
+    wait "$producer_pid" 2>/dev/null || true
+    rm -f "$tmp_fifo"
+    exit 0
 
   elif [[ $selected == "xvideos" ]]; then
     read -rp "Search: " SEARCH
@@ -354,6 +357,8 @@ rm "$tmp";
   wait "$pid"
   PAGE=$(cat "$tmp")
   rm "$tmp";
+  tmp_fifo=$(mktemp -u)
+  mkfifo "$tmp_fifo"
   {
     for ((i = 0; i <= PAGE; i++)); do
       curl -Ls --retry 20 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 30 -x "$PROXY" "https://www.xvideos.com/?k=$ENCODED_SEARCH&p=$i" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" 2>/dev/null |
@@ -362,12 +367,13 @@ rm "$tmp";
         sed -E 's|.*<img[^>]+data-src="([^"]+)".*<a[^>]+href="(/video[^"]+)".*title="([^"]+)".*|\2\t\3\t\1|'
     done
     notify-send -a "por-cli" "Pages loaded" "All $PAGE pages fetched. Select a video."
-  } | 
-    awk '!seen[$1]++' |
-    fzf --prompt="filter:" --layout=reverse --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
+  } > "$tmp_fifo" &
+  producer_pid=$!
+
+  awk '!seen[$1]++' < "$tmp_fifo" | fzf --prompt="filter:" --layout=reverse --with-shell="bash -c" --delimiter=$'\t' --with-nth=2 \
     --preview "
-  $(typeset -f preview)
-  preview {3} " \
+$(typeset -f preview)
+preview {3} " \
     --bind "enter:execute(
       $(typeset -f spinner)
       $(typeset -f player)
@@ -393,9 +399,12 @@ rm "$tmp";
     playlist=\$(cat \"\$tmp\");
     rm \"\$tmp\";
     [ -n \"\$playlist\" ] && player \"\$playlist\" \"\$name\"
-    )"
-    pkill $pid
-    exit 0
+    )" || true
+
+  kill "$producer_pid" 2>/dev/null || true
+  wait "$producer_pid" 2>/dev/null || true
+  rm -f "$tmp_fifo"
+  exit 0
 
   elif [[ $selected == "donate" ]]; then
     sponsor=`echo "buymeacoffee github" | tr ' ' '\n'`
