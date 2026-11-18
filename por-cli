@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 HIS="${XDG_STATE_HOME:-$HOME/.local/state}/por-cli/watch.history"
+mkdir -p "$(dirname "$HIS")" || {
+    echo "Error: Cannot create history directory" >&2
+    exit 1
+}
 
 RESUME=0
 USE_PROXY=0

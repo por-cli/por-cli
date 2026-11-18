@@ -55,6 +55,16 @@ brew install curl fzf mpv chafa jq coreutils
 
 ## Installation
 
+### Arch Linux
+#### Using yay 
+```bash
+yay -S por-cli-git
+```
+#### Using paru 
+```bash
+paru -S por-cli-git
+```
+
 ### Script Installation
 
 Run this command:
