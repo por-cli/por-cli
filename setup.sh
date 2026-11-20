@@ -24,11 +24,18 @@ if (( ${#MISSING[@]} > 0 )); then
   exit 2
 fi
 
+DOWNLOAD_URL=$(curl -fsSL https://api.github.com/repos/por-cli/por-cli/releases/latest | jq -r '.assets[] | select(.name == "por-cli") | .browser_download_url')
+
+if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then
+  echo "Error: Could not find por-cli in the latest release."
+  exit 1
+fi
+
 if [ -n "$TERMUX_VERSION" ]; then
-  wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/por-cli" -O "/data/data/com.termux/files/usr/bin/por-cli" &&
-     chmod +x "/data/data/com.termux/files/usr/bin/por-cli"
+  wget "$DOWNLOAD_URL" -O "$PREFIX/bin/por-cli" &&
+    chmod +x "$PREFIX/bin/por-cli"
 else
-  sudo wget "https://raw.githubusercontent.com/por-cli/por-cli/refs/heads/main/por-cli" -O "/usr/local/bin/por-cli" &&
+  sudo wget "$DOWNLOAD_URL" -O "/usr/local/bin/por-cli" &&
     sudo chmod +x "/usr/local/bin/por-cli"
 fi
 
